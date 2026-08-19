@@ -80,41 +80,42 @@ raw JSON:
 
 ## Architecture
 
-See [`docs/architecture.pdf`](docs/architecture.pdf) for diagrams of the
-system components, the 5-agent pipeline, how the three roles share data, and
-8 request-level sequence diagrams (login, upload → pipeline, critical-alert
-escalation, doctor review → patient reveal, appointment booking/cancellation,
-AI chat, and doctor↔radiologist messaging). Sources in
-`docs/architecture-diagrams/*.mmd`, regenerate with
+See [`app/docs/architecture.pdf`](app/docs/architecture.pdf) for diagrams of
+the system components, the 5-agent pipeline, how the three roles share data,
+and 8 request-level sequence diagrams (login, upload → pipeline,
+critical-alert escalation, doctor review → patient reveal, appointment
+booking/cancellation, AI chat, and doctor↔radiologist messaging). Sources in
+`app/docs/architecture-diagrams/*.mmd`, regenerate from `app/` with
 `mmdc -i <file>.mmd -o <file>.png -b white -c docs/architecture-diagrams/mermaid-config.json`
 — the config file bumps in-diagram font sizes; the PDF itself is A4
 landscape for legibility).
 
 ```
-backend/
-  agents/          5-agent pipeline (schemas.py, one file per agent, pipeline.py orchestrator)
-  db/               SQLite schema + repositories (source of truth for all structured data)
-  documents/        DOCX/PDF parsing + regex entity extraction
-  vectorstore/      ChromaDB wrapper (embeddings/RAG only — never relational data)
-  knowledge_graph.py NetworkX medical ontology (lab tests, symptoms, allergen cross-reactivity)
-  observability/    NoOp (default, fully offline) / Langfuse v4 tracing adapters
-  llm/              Injectable OpenAI client (embeddings + chat)
-  auth/             pbkdf2 password hashing + role-based access control
-  services/         Upload/report/compare/chat/alert/appointment business logic
-  api/              FastAPI routers (SPA shell + per-role JSON APIs)
-  main.py           App entrypoint, builds the DI object graph on startup
+app/
+  backend/
+    agents/          5-agent pipeline (schemas.py, one file per agent, pipeline.py orchestrator)
+    db/               SQLite schema + repositories (source of truth for all structured data)
+    documents/        DOCX/PDF parsing + regex entity extraction
+    vectorstore/      ChromaDB wrapper (embeddings/RAG only — never relational data)
+    knowledge_graph.py NetworkX medical ontology (lab tests, symptoms, allergen cross-reactivity)
+    observability/    NoOp (default, fully offline) / Langfuse v4 tracing adapters
+    llm/              Injectable OpenAI client (embeddings + chat)
+    auth/             pbkdf2 password hashing + role-based access control
+    services/         Upload/report/compare/chat/alert/appointment business logic
+    api/              FastAPI routers (SPA shell + per-role JSON APIs)
+    main.py           App entrypoint, builds the DI object graph on startup
 
-frontend/           React + TypeScript SPA (Vite, Tailwind, React Router, TanStack Query) —
-                    talks to the backend purely through the /api/* JSON API. `frontend/dist`
-                    (the production build) is what `backend/api/routes_pages.py` serves.
-                    Three role dashboards (patient/doctor/radiologist) built from shared
-                    components: report upload/list/compare/detail, the 5-agent audit trail,
-                    doctor review + review-history, RAG chat, in-app messaging (name-dropdown
-                    directories, not raw user IDs), and appointment booking/cancellation.
-scripts/            reset_db.py, seed_data.py (seeds from the real ../Datasets/ folder)
-tests/              87 tests: repositories, document/entity parsing, vector store, knowledge
-                    graph, observability, mocked-LLM agent/pipeline negative-scenario tests,
-                    and an end-to-end API smoke test
+  frontend/           React + TypeScript SPA (Vite, Tailwind, React Router, TanStack Query) —
+                      talks to the backend purely through the /api/* JSON API. `frontend/dist`
+                      (the production build) is what `backend/api/routes_pages.py` serves.
+                      Three role dashboards (patient/doctor/radiologist) built from shared
+                      components: report upload/list/compare/detail, the 5-agent audit trail,
+                      doctor review + review-history, RAG chat, in-app messaging (name-dropdown
+                      directories, not raw user IDs), and appointment booking/cancellation.
+  scripts/            reset_db.py, seed_data.py (seeds from the real ../Datasets/ folder)
+  tests/              87 tests: repositories, document/entity parsing, vector store, knowledge
+                      graph, observability, mocked-LLM agent/pipeline negative-scenario tests,
+                      and an end-to-end API smoke test
 ```
 
 ## Setup
@@ -295,7 +296,7 @@ shells render).
 The app is Dockerized (`Dockerfile`, `docker-compose.yml`) and there's a
 Terraform stack under `deploy/terraform/` for a single EC2 instance +
 persistent EBS volume + ECR + SSM-managed secrets on AWS — see
-[`deploy/DEPLOYMENT.md`](deploy/DEPLOYMENT.md) for the full walkthrough
+[`app/deploy/DEPLOYMENT.md`](app/deploy/DEPLOYMENT.md) for the full walkthrough
 (why this shape given SQLite's single-writer constraint, first-time setup,
 subsequent deploys via `.github/workflows/deploy.yml`, HTTPS, backups).
 
