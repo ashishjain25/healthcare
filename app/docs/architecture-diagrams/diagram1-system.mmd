@@ -1,0 +1,41 @@
+graph TB
+  SPA["React SPA<br/>Vite . TS . Tailwind . React Router . TanStack Query"]
+
+  subgraph BE["FastAPI backend  .  uvicorn"]
+    direction TB
+    ROUTERS["routers<br/>routes_auth . routes_patient . routes_doctor . routes_radiologist"]
+    PAGES["routes_pages<br/>SPA shell + /assets"]
+    SERVICES["services/<br/>report . compare . chat . alert . appointment"]
+    PIPELINE["agents/<br/>5-agent clinical pipeline"]
+    REPOS["db/repositories<br/>RBAC-scoped SQL"]
+    AUTHM["auth/<br/>pbkdf2 . session cookie . RBAC"]
+    KG["knowledge_graph.py<br/>NetworkX medical ontology"]
+    OBS["observability/<br/>NoOp / Langfuse"]
+  end
+
+  DB[("SQLite<br/>healthcare.db")]
+  VEC[("ChromaDB<br/>embeddings only")]
+  FILES[("local uploads/")]
+  OPENAI["OpenAI API<br/>chat + embeddings"]
+  LANGFUSE["Langfuse<br/>(optional)"]
+
+  SPA -->|"/api/* JSON"| ROUTERS
+  SPA -.->|"static build served as"| PAGES
+  ROUTERS --> AUTHM
+  ROUTERS --> SERVICES
+  SERVICES --> REPOS
+  SERVICES --> PIPELINE
+  SERVICES --> VEC
+  SERVICES --> FILES
+  PIPELINE --> KG
+  PIPELINE -->|"embed + complete"| OPENAI
+  PIPELINE --> OBS
+  OBS -.-> LANGFUSE
+  REPOS --> DB
+
+  classDef svc fill:#1d6f8c14,stroke:#1d6f8c,stroke-width:1.4px;
+  classDef store fill:#f6f8fb,stroke:#4d5c70,stroke-width:1.4px;
+  classDef ext fill:#97650f14,stroke:#97650f,stroke-width:1.4px;
+  class ROUTERS,PAGES,SERVICES,PIPELINE,REPOS,AUTHM,KG,OBS svc;
+  class DB,VEC,FILES store;
+  class OPENAI,LANGFUSE ext;

@@ -1,0 +1,22 @@
+sequenceDiagram
+  actor User
+  participant SPA
+  participant API as routes_auth
+  participant DB as SQLite
+
+  User->>SPA: enters email + password
+  SPA->>API: POST /api/auth/login
+  API->>DB: user_repo.get_by_email(email)
+  DB-->>API: user row (hash, salt, role)
+  API->>API: verify_password() . pbkdf2
+  alt invalid credentials
+    API-->>SPA: 401 Invalid email or password
+  else valid
+    opt role == patient
+      API->>DB: patient_repo.get_by_user_id(user_id)
+      DB-->>API: patient_id
+    end
+    API->>API: session["user"] = {user_id, role, full_name, patient_id}
+    API-->>SPA: 200 {user_id, role, full_name, patient_id}
+    SPA->>SPA: redirect to /{role}
+  end

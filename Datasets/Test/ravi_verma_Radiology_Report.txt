@@ -1,0 +1,22 @@
+Prostate Ultrasound (Transabdominal)
+
+Patient Name: Ravi Verma
+Age: 47 years
+Study Date: 24-07-2026
+Radiologist: Dr. Arvind Menon, Reg. No: RMC/2021/45823
+
+Observations:
+• Prostate enlarged
+• Transition zone bulky
+• Median lobe intruding into bladder base
+• Bladder post-void residual increased
+• Seminal vesicles normal
+
+Findings:
+• Prostatomegaly (abnormal)
+• Bladder outlet obstruction suspected
+• PVR >60 ml abnormal
+
+Reference Ranges:
+• Normal prostate volume <30 cc
+• Post‑void residual <50 ml

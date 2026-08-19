@@ -1,0 +1,22 @@
+{
+  "theme": "base",
+  "themeVariables": {
+    "fontSize": "20px"
+  },
+  "flowchart": {
+    "useMaxWidth": false,
+    "nodeSpacing": 46,
+    "rankSpacing": 60
+  },
+  "sequence": {
+    "useMaxWidth": false,
+    "actorFontSize": 17,
+    "actorFontWeight": "600",
+    "messageFontSize": 16,
+    "noteFontSize": 15,
+    "width": 165,
+    "height": 50,
+    "boxMargin": 10,
+    "messageMargin": 38
+  }
+}

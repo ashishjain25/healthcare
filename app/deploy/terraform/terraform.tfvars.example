@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and adjust. terraform.tfvars is gitignored —
+# nothing here is secret (real secrets go in SSM Parameter Store, not here),
+# but region/instance choices are still environment-specific.
+
+aws_region    = "us-east-1"
+project_name  = "cis"
+instance_type = "t3.small"
+
+# Leave blank to manage the instance via SSM Session Manager only (no SSH
+# key, no open port 22 — recommended). Set both to enable SSH as a fallback.
+# allowed_ssh_cidr = "203.0.113.4/32"
+# key_name         = "my-ec2-keypair"
+
+# Leave blank to skip DNS and use the raw Elastic IP over HTTP.
+# domain_name      = "clinical.example.com"
+# route53_zone_id  = "Z0123456789ABCDEFGHIJ"

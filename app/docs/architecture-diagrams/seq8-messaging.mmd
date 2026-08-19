@@ -1,0 +1,21 @@
+sequenceDiagram
+  actor Sender as Doctor / Radiologist
+  participant SPA
+  participant API as routes_doctor / routes_radiologist
+  participant MR as message_repo
+  participant DB as SQLite
+  actor Recipient as Radiologist / Doctor
+
+  Sender->>SPA: picks recipient (name dropdown) + patient + message
+  SPA->>API: POST .../messages
+  API->>MR: send_message(sender, recipient, patient_id, body)
+  MR->>MR: thread_id = sorted(sender, recipient) + patient_id
+  MR->>DB: insert messages row
+  MR-->>API: message_id
+  API-->>SPA: 200 {id}
+
+  Recipient->>SPA: opens dashboard for the same patient
+  SPA->>API: GET .../messages?patient_id=...
+  API->>DB: list_for_patient(patient_id)
+  DB-->>API: messages + sender_name
+  API-->>SPA: messages[]

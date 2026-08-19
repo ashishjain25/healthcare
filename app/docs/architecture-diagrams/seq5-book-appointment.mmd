@@ -1,0 +1,30 @@
+sequenceDiagram
+  actor Patient
+  participant SPA
+  participant API as routes_patient
+  participant Svc as appointment_service
+  participant DB as SQLite
+
+  Patient->>SPA: picks a doctor + date
+  SPA->>API: GET .../appointments/availability?doctor_user_id&date
+  API->>Svc: list_available_slots(doctor_user_id, date)
+  Svc->>DB: appointment_repo.list_booked_times(doctor, date)
+  DB-->>Svc: booked HH:MM[]
+  Svc-->>API: grid minus booked, minus past-dated slots
+  API-->>SPA: available_times[]
+
+  Patient->>SPA: picks a slot + optional reason, submits
+  SPA->>API: POST .../appointments/book
+  API->>Svc: book_appointment(doctor, date, time, reason)
+  Svc->>Svc: validate role, 15-min grid, not in the past
+  Svc->>DB: has_conflict(doctor, datetime)?
+  alt slot just taken
+    DB-->>Svc: conflict
+    Svc-->>API: 409 ConflictError
+    API-->>SPA: "please choose another time"
+  else free
+    Svc->>DB: create_appointment(...) . update_status(confirmed)
+    Svc-->>API: appointment_id
+    API-->>SPA: 200 {id}
+    SPA->>SPA: refetch appointments + availability
+  end

@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Local data / secrets — never bake these into an image
+data/
+.env
+.env.*
+!.env.example
+
+# Tests, docs, scratch
+tests/
+docs/
+*.md
+
+# VCS / editor
+.git/
+.gitignore
+.vscode/
+.idea/

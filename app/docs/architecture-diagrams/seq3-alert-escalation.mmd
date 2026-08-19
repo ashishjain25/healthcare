@@ -1,0 +1,20 @@
+sequenceDiagram
+  participant Pipe as ClinicalPipeline
+  participant DB as SQLite
+  actor Doctor
+  participant SPA as Doctor SPA
+  participant API as routes_doctor
+
+  Pipe->>DB: alert_repo.create_alert(severity, message, alert_type)
+  Pipe->>DB: appointment_repo.create_appointment(status=suggested)
+
+  Doctor->>SPA: opens dashboard
+  SPA->>API: GET /api/doctor/alerts
+  API->>DB: alert_repo.list_open()
+  DB-->>API: open alerts + patient_name
+  API-->>SPA: alerts[]
+  Doctor->>SPA: clicks an alert card
+  SPA->>SPA: selectPatient(alert.patient_id)
+  SPA->>API: GET /api/doctor/patients/:id/reports
+  API-->>SPA: reports[]
+  Doctor->>SPA: opens a report, reviews the AI audit trail

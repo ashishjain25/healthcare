@@ -1,0 +1,20 @@
+graph LR
+  RAD["Radiologist / Lab"] -->|"uploads"| REPORT[("reports +<br/>extractions")]
+  REPORT -->|"triggers"| PIPE(["5-agent pipeline"])
+  PIPE --> INSIGHT[("insights +<br/>patient_summaries")]
+  PIPE -.->|"critical value"| ALERTS[("alerts +<br/>appointments")]
+  DOC["Doctor"] -->|"reviews"| INSIGHT
+  INSIGHT -->|"clinician_approved"| PAT["Patient"]
+  ALERTS -->|"visible on"| DOC
+  PAT -->|"books / cancels"| APPT[("appointments")]
+  APPT -->|"visible on"| DOC
+  DOC <-->|"messages"| RAD
+  PAT -->|"RAG chat, scoped to own reports"| CHAT[("chat_messages")]
+  DOC -->|"RAG chat, scoped to selected patient"| CHAT
+
+  classDef role fill:#1d6f8c14,stroke:#4c7686,stroke-width:1.4px;
+  classDef data fill:#f6f8fb,stroke:#4d5c70,stroke-width:1.4px;
+  classDef proc fill:#227a4d14,stroke:#227a4d,stroke-width:1.4px;
+  class RAD,DOC,PAT role;
+  class REPORT,INSIGHT,ALERTS,APPT,CHAT data;
+  class PIPE proc;

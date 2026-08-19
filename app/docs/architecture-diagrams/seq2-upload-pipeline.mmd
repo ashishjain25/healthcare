@@ -1,0 +1,60 @@
+sequenceDiagram
+  actor Uploader as Radiologist / Patient
+  participant SPA
+  participant API as routes_patient / routes_radiologist
+  participant RS as report_service
+  participant Vec as ChromaStore
+  participant BG as BackgroundTasks
+  participant Pipe as ClinicalPipeline
+  participant Agent as agent (x5, sequential)
+  participant OpenAI
+  participant DB as SQLite
+
+  Uploader->>SPA: picks category, pastes text or attaches file
+  SPA->>API: POST .../reports/upload (multipart)
+  API->>RS: upload_report(...)
+  opt file attached
+    RS->>RS: DocumentProcessor.process_file()
+  end
+  RS->>DB: report_repo.create_report(status=pending_pipeline)
+  RS->>Vec: add_document("patient_reports", embed_fn=OpenAI.embed)
+  RS-->>API: report_id
+  API->>BG: schedule run_pipeline_in_background(report_id)
+  API-->>SPA: 200 {report_id, status: "processing"}
+  Note over SPA,DB: response already sent — everything below runs async
+
+  BG->>Pipe: run(report_id)
+  Pipe->>DB: status → processing . create pipeline_run
+
+  Pipe->>Agent: 1 . Data Extraction(report_text, table_text)
+  Agent->>OpenAI: structured completion
+  OpenAI-->>Agent: parameters + confidence
+  Agent-->>Pipe: DataExtractionOutput
+  Pipe->>DB: save_agent_output + add_extraction(s)
+
+  Pipe->>Agent: 2 . Clinical Analysis(extraction, patient_context)
+  Agent->>OpenAI: structured completion
+  Agent-->>Pipe: ClinicalAnalysisOutput (clinical_inconsistency?)
+  Pipe->>DB: save_agent_output
+
+  Pipe->>Agent: 3 . Risk Detection(analysis, patient_context)
+  Agent->>OpenAI: structured completion
+  Agent->>Agent: cross-check vs. knowledge_graph.py
+  Agent-->>Pipe: RiskDetectionOutput
+  Pipe->>DB: save_agent_output
+  opt requires_immediate_escalation
+    Pipe->>DB: alert_service.create_alert_from_risk()
+    Pipe->>DB: appointment_service.suggest_appointment()
+  end
+
+  Pipe->>Agent: 4 . Insight Generation(+ up to 3 prior reports)
+  Agent->>OpenAI: structured completion
+  Agent-->>Pipe: InsightGenerationOutput
+  Pipe->>DB: save_agent_output + save_insight
+
+  Pipe->>Agent: 5 . Patient Communication(insight, patient_context)
+  Agent->>OpenAI: structured completion
+  Agent-->>Pipe: PatientCommunicationOutput
+  Pipe->>DB: save_agent_output + save_patient_summary(clinician_approved=false)
+
+  Pipe->>DB: mark_run_status(completed) . report status → processed

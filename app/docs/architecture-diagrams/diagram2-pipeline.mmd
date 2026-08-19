@@ -1,0 +1,24 @@
+graph LR
+  UP(["Report uploaded<br/>file or pasted text"]) --> DE["1 . Data Extraction<br/>structured parameters"]
+  DE -.->|"low confidence"| F1{{"needs_review"}}
+  DE --> CA["2 . Clinical Analysis<br/>interpret findings"]
+  CA -.->|"conflicts w/ symptoms"| F2{{"clinical_inconsistency"}}
+  CA --> RD["3 . Risk Detection<br/>knowledge-graph cross-check"]
+  RD -.->|"crosses critical threshold"| ALERT["Alert + escalation"]
+  RD --> IG["4 . Insight Generation<br/>findings + recommendations"]
+  IG --> PC["5 . Patient Communication<br/>plain-language draft"]
+  PC --> GATE{"Doctor review"}
+  GATE -->|"validated / modified / finalized"| VISIBLE(["Visible to patient"])
+  GATE -->|"pending"| HIDDEN(["Hidden from patient"])
+
+  classDef agent fill:#1d6f8c14,stroke:#1d6f8c,stroke-width:1.6px;
+  classDef flag fill:#97650f14,stroke:#97650f,stroke-width:1.4px;
+  classDef crit fill:#b0342f14,stroke:#b0342f,stroke-width:1.4px;
+  classDef good fill:#227a4d14,stroke:#227a4d,stroke-width:1.4px;
+  classDef gate fill:#f6f8fb,stroke:#4d5c70,stroke-width:1.4px;
+  class DE,CA,RD,IG,PC agent;
+  class F1,F2 flag;
+  class ALERT crit;
+  class VISIBLE good;
+  class HIDDEN flag;
+  class GATE gate;

@@ -1,0 +1,34 @@
+# Runs the containerized app the same way locally and on the EC2 instance
+# provisioned by deploy/terraform/ — see deploy/DEPLOYMENT.md.
+#
+# Local use:   docker compose up --build
+# EC2 use:     the bootstrap script pulls a prebuilt image (see
+#              deploy/scripts/bootstrap.sh) and runs `docker compose up -d`
+#              with IMAGE pointing at the ECR image instead of building.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE:-cis:local}
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      - app-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  app-data:
+    # Named volume so the SQLite DB, ChromaDB persist dir, and uploaded
+    # files survive `docker compose down` / container replacement. On the
+    # EC2 host this resolves to a path on the mounted EBS data volume via
+    # Docker's default volume driver (see deploy/scripts/bootstrap.sh,
+    # which points Docker's data-root at the EBS mount).

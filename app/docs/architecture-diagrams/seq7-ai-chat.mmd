@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor User as Patient / Doctor
+  participant SPA
+  participant API as routes_patient / routes_doctor
+  participant CS as chat_service
+  participant Vec as ChromaStore
+  participant OpenAI
+  participant DB as SQLite
+
+  User->>SPA: asks a question
+  SPA->>API: POST .../chat {question}
+  API->>CS: ask(user_id, patient_id, role, question)
+  CS->>DB: get_or_create_session() + add_message(role=user)
+  CS->>Vec: query("patient_reports", where patient_id=...)
+  Vec-->>CS: this patient's report excerpts
+  CS->>Vec: query("reference_knowledge")
+  Vec-->>CS: reference excerpts
+  CS->>OpenAI: complete(context + question, role-specific system prompt)
+  OpenAI-->>CS: answer
+  CS->>DB: add_message(role=assistant, retrieved_chunk_ids)
+  CS-->>API: answer
+  API-->>SPA: {answer}
+  SPA-->>User: renders assistant bubble

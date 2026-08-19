@@ -1,0 +1,21 @@
+sequenceDiagram
+  actor Patient
+  participant SPA
+  participant API as routes_patient
+  participant Svc as appointment_service
+  participant DB as SQLite
+
+  Patient->>SPA: clicks Cancel on an upcoming appointment
+  SPA->>API: PATCH .../appointments/:id/cancel
+  API->>Svc: cancel_appointment(id, patient_id)
+  Svc->>DB: appointment_repo.get_by_id(id)
+  alt not owned by this patient
+    Svc-->>API: 403 Forbidden
+  else already cancelled, or in the past
+    Svc-->>API: 400 ValidationError
+  else ok
+    Svc->>DB: update_status(cancelled)
+    Svc-->>API: ok
+    API-->>SPA: 200 {ok: true}
+    SPA->>SPA: refetch appointments
+  end

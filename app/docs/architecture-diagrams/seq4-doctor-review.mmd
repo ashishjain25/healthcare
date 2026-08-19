@@ -1,0 +1,28 @@
+sequenceDiagram
+  actor Doctor
+  participant DSPA as Doctor SPA
+  participant API as routes_doctor
+  participant PR as pipeline_repo
+  participant DB as SQLite
+  actor Patient
+  participant PSPA as Patient SPA
+  participant PAPI as routes_patient
+
+  Doctor->>DSPA: clicks Validate / Mark modified / Finalize
+  DSPA->>API: POST /api/doctor/insights/:id/review {action, comments}
+  API->>PR: add_doctor_review(action, comments)
+  PR->>DB: insert doctor_reviews row
+  alt action in (validated, modified, finalized)
+    PR->>DB: patient_summaries.clinician_approved = 1
+    PR->>DB: insights.status = doctor_reviewed | finalized
+  else rejected
+    PR->>DB: insights.status = review_required
+  end
+  API-->>DSPA: updated insight
+
+  Patient->>PSPA: opens the same report
+  PSPA->>PAPI: GET /api/patient/reports/:id
+  PAPI->>DB: read insight + check clinician_approved
+  DB-->>PAPI: approved summary + doctor_reviews
+  PAPI-->>PSPA: plain-language summary + review history
+  PSPA-->>Patient: "What this means" now visible

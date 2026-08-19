@@ -1,0 +1,99 @@
+#!/bin/bash
+# EC2 user-data — runs once on first boot (Amazon Linux 2023). Idempotent
+# where it matters (safe to re-run via `cloud-init` on a `terraform taint` /
+# instance replacement): formats the data volume only if it's not already
+# formatted, and `docker compose up -d` just recreates whatever changed.
+set -euo pipefail
+exec > >(tee /var/log/bootstrap.log) 2>&1
+
+echo "=== Installing Docker ==="
+dnf update -y
+dnf install -y docker
+systemctl enable --now docker
+
+echo "=== Installing the Docker Compose plugin ==="
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+echo "=== Mounting the persistent data volume ==="
+ROOT_SRC=$(findmnt -no SOURCE /)
+ROOT_DISK=$(lsblk -no PKNAME "$ROOT_SRC" 2>/dev/null || true)
+if [ -z "$ROOT_DISK" ]; then
+  ROOT_DISK=$(basename "$ROOT_SRC" | sed -E 's/p?[0-9]+$//')
+fi
+
+DATA_DEV=""
+for dev in $(lsblk -dno NAME,TYPE | awk '$2=="disk"{print $1}'); do
+  if [ "$dev" != "$ROOT_DISK" ]; then
+    DATA_DEV="/dev/$dev"
+    break
+  fi
+done
+
+if [ -z "$DATA_DEV" ]; then
+  echo "ERROR: no secondary EBS volume found — is the data volume attached?" >&2
+  exit 1
+fi
+
+if ! blkid "$DATA_DEV" >/dev/null 2>&1; then
+  echo "Formatting $DATA_DEV (first boot)"
+  mkfs -t ext4 "$DATA_DEV"
+fi
+
+mkdir -p /data
+mount "$DATA_DEV" /data
+grep -q "$DATA_DEV" /etc/fstab || echo "$DATA_DEV /data ext4 defaults,nofail 0 2" >> /etc/fstab
+mkdir -p /data/app
+chown 1000:1000 /data/app
+
+echo "=== Fetching secrets from SSM Parameter Store ==="
+mkdir -p /opt/app
+{
+  echo "OPENAI_API_KEY=$(aws ssm get-parameter --name '/${project_name}/openai_api_key' --with-decryption --query Parameter.Value --output text --region '${aws_region}')"
+  echo "SESSION_SECRET=$(aws ssm get-parameter --name '/${project_name}/session_secret' --with-decryption --query Parameter.Value --output text --region '${aws_region}')"
+  echo "LANGFUSE_PUBLIC_KEY=$(aws ssm get-parameter --name '/${project_name}/langfuse_public_key' --with-decryption --query Parameter.Value --output text --region '${aws_region}')"
+  echo "LANGFUSE_SECRET_KEY=$(aws ssm get-parameter --name '/${project_name}/langfuse_secret_key' --with-decryption --query Parameter.Value --output text --region '${aws_region}')"
+} > /opt/app/.env
+chmod 600 /opt/app/.env
+
+echo "=== Writing docker-compose.yml ==="
+cat > /opt/app/docker-compose.yml <<COMPOSE
+services:
+  app:
+    image: ${ecr_repository_url}:latest
+    ports:
+      - "80:8000"
+    env_file:
+      - .env
+    volumes:
+      - /data/app:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+COMPOSE
+
+echo "=== Logging in to ECR ==="
+aws ecr get-login-password --region '${aws_region}' \
+  | docker login --username AWS --password-stdin '${ecr_repository_url}'
+
+echo "=== Pulling and starting the app ==="
+cd /opt/app
+# On a brand-new stack there's no image in ECR yet on this very first boot —
+# that's expected (see deploy/DEPLOYMENT.md's first-time-setup order). Don't
+# let that abort the rest of bootstrap: the compose file and .env above are
+# already in place, so once an image is pushed, `docker compose up -d` here
+# (rerun manually via SSM, or automatically by the next CI deploy) just works.
+if docker compose pull; then
+  docker compose up -d
+else
+  echo "No image found at ${ecr_repository_url}:latest yet."
+  echo "Push one (see DEPLOYMENT.md), then: cd /opt/app && docker compose up -d"
+fi
+
+echo "=== Bootstrap complete ==="

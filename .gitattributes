@@ -1,0 +1,21 @@
+# Normalize everything Git detects as text to LF, both in the repo and on
+# checkout. Files here already have LF endings on disk; this just stops Git
+# from converting them to CRLF locally (Windows) and, more importantly,
+# guarantees shell scripts stay LF regardless of a contributor's local
+# core.autocrlf — a CRLF shebang line (`#!/bin/bash^M`) fails to execute on
+# the Linux EC2 instance deploy/scripts/bootstrap.sh.tftpl boots on.
+* text=auto eol=lf
+
+*.sh      text eol=lf
+*.tftpl   text eol=lf
+Dockerfile text eol=lf
+
+# Binary — never touch line endings, never diff as text.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.pdf  binary
+*.db   binary
+*.sqlite binary
+*.sqlite3 binary
