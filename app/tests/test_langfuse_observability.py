@@ -9,12 +9,21 @@ traces actually land in a Langfuse project.
 from backend.observability.langfuse_observability import LangfuseObservability
 
 
+class _StubOtelSpan:
+    def __init__(self):
+        self.attributes = {}
+
+    def set_attribute(self, key, value):
+        self.attributes[key] = value
+
+
 class _StubObservation:
     def __init__(self, name):
         self.name = name
         self.updates = []
         self.ended = False
         self.children = []
+        self._otel_span = _StubOtelSpan()
 
     def start_observation(self, *, name, as_type, **kwargs):
         child = _StubObservation(name)
@@ -50,7 +59,8 @@ def test_start_trace_creates_root_span_with_session_id():
 
     as_type, root, kwargs = adapter.client.roots[0]
     assert as_type == "span"
-    assert kwargs["metadata"]["session_id"] == "sess-1"
+    assert kwargs["metadata"] == {"report_id": 1}
+    assert root._otel_span.attributes["session.id"] == "sess-1"
     assert trace is root
 
 

@@ -4,23 +4,43 @@ returned span/generation object). This is a materially different API from
 the notebook's legacy v2-style `langfuse.trace()/.generation()` calls, not a
 straight port of Week 1's traced_completion/traced_embedding helpers.
 """
+import os
 from typing import Any
 
 from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
 
+# Langfuse's v4 OTel-based SDK groups traces into "Sessions" by this dedicated
+# span attribute (see langfuse._client.attributes.LangfuseOtelSpanAttributes.
+# TRACE_SESSION_ID) — it is NOT read from the `metadata` dict. The public
+# `langfuse.propagate_attributes()` helper sets it the same way, but only on
+# whatever OTel span is "current" in context; this pipeline creates its root
+# span explicitly (not via start_as_current_observation) and threads it as an
+# explicit `parent`, so there is no ambient "current" span to propagate onto.
+# Setting the attribute directly on the underlying OTel span is what makes
+# the Sessions view populate.
+_SESSION_ID_ATTRIBUTE = "session.id"
+
+# Langfuse builds its OTel Resource via plain `Resource.create()` and never
+# passes service.name itself, so without the standard OTEL_SERVICE_NAME env
+# var every trace's resourceAttributes.service.name shows as "unknown_service".
+# The OTel TracerProvider is a process-wide singleton created on first use, so
+# this must be set before the first `Langfuse(...)` instantiation in-process.
+_SERVICE_NAME = "clinical-intelligence-system"
+
 
 class LangfuseObservability:
     def __init__(self, *, public_key: str, secret_key: str, host: str) -> None:
+        os.environ.setdefault("OTEL_SERVICE_NAME", _SERVICE_NAME)
         self.client = Langfuse(public_key=public_key, secret_key=secret_key, host=host)
         self.client.auth_check()
 
     def start_trace(self, name: str, *, session_id: str | None = None,
                      metadata: dict[str, Any] | None = None) -> Any:
-        meta = dict(metadata or {})
+        trace = self.client.start_observation(name=name, as_type="span", metadata=metadata)
         if session_id:
-            meta["session_id"] = session_id
-        return self.client.start_observation(name=name, as_type="span", metadata=meta)
+            trace._otel_span.set_attribute(_SESSION_ID_ATTRIBUTE, session_id)
+        return trace
 
     def start_span(self, parent: Any, name: str, *,
                     metadata: dict[str, Any] | None = None) -> Any:

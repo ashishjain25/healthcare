@@ -1,5 +1,14 @@
 # Clinical Intelligence System
 
+| | |
+|---|---|
+| **Full Name** | Ashish Jain |
+| **Uplevel Email** | ashish.jain25@gmail.com |
+| **Problem Statement** | Clinical Intelligence System |
+| **Submission Date** | August 25, 2026 |
+
+---
+
 A standalone FastAPI application implementing the **AI-Driven Multi-Role
 Clinical Intelligence System**: a 5-agent chained pipeline (Data Extraction → Clinical Analysis → Risk
 Detection → Insight Generation → Patient Communication) that processes
