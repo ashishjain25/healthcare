@@ -161,3 +161,37 @@ def test_alerts_appointments_messages(conn):
     thread_id = message_repo.build_thread_id(doctor_id, uid, pid)
     assert len(message_repo.list_thread(conn, thread_id)) == 1
     assert len(message_repo.list_for_user(conn, doctor_id)) == 1
+
+
+def test_row_level_rbac_doctor_cannot_see_another_doctors_message_thread(conn):
+    """Two doctors can each have their own private thread with the same
+    radiologist about the same shared patient — one must never see the
+    other's conversation just by asking for that patient's messages."""
+    _, pid = _make_patient(conn)
+    radiologist_id = user_repo.create_user(
+        conn, email="rad-shared@cis.com", password_hash="h", password_salt="s",
+        full_name="Karan Singh", role="radiologist",
+    )
+    doctor_a = user_repo.create_user(
+        conn, email="doc-a@cis.com", password_hash="h", password_salt="s",
+        full_name="Dr. A", role="doctor",
+    )
+    doctor_b = user_repo.create_user(
+        conn, email="doc-b@cis.com", password_hash="h", password_salt="s",
+        full_name="Dr. B", role="doctor",
+    )
+
+    message_repo.send_message(
+        conn, sender_user_id=doctor_a, recipient_user_id=radiologist_id, patient_id=pid,
+        report_id=None, body="Any CBC report pending?",
+    )
+    message_repo.send_message(
+        conn, sender_user_id=doctor_b, recipient_user_id=radiologist_id, patient_id=pid,
+        report_id=None, body="Please prioritize this patient's scan",
+    )
+
+    a_view = message_repo.list_for_patient(conn, pid, doctor_a)
+    b_view = message_repo.list_for_patient(conn, pid, doctor_b)
+
+    assert len(a_view) == 1 and a_view[0]["body"] == "Any CBC report pending?"
+    assert len(b_view) == 1 and b_view[0]["body"] == "Please prioritize this patient's scan"

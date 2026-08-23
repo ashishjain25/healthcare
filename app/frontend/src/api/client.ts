@@ -17,7 +17,18 @@ async function handle<T>(res: Response): Promise<T> {
     let detail = res.statusText;
     try {
       const body = await res.json();
-      detail = body.detail || detail;
+      // FastAPI's own request-validation errors (missing/invalid form
+      // fields) shape `detail` as a list of {loc, msg, ...} objects rather
+      // than a string — stringifying that directly renders as
+      // "[object Object]". Our own handlers always raise a string detail,
+      // so only this automatic-validation shape needs special-casing.
+      if (typeof body.detail === "string") {
+        detail = body.detail;
+      } else if (Array.isArray(body.detail)) {
+        detail = body.detail.map((e: { msg?: string }) => e?.msg).filter(Boolean).join("; ") || detail;
+      } else if (body.detail) {
+        detail = JSON.stringify(body.detail);
+      }
     } catch {
       // ignore — body wasn't JSON
     }

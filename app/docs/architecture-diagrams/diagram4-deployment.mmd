@@ -1,0 +1,36 @@
+graph TB
+  USER["Internet<br/>clinician / patient browser"]
+  DEV["your machine / GitHub Actions<br/>test . build . docker push"]
+
+  subgraph AWS["AWS &middot; eu-central-1"]
+    direction TB
+    EIP["Elastic IP<br/>ec2-63-185-251-88.eu-central-1.compute.amazonaws.com"]
+    subgraph EC2["EC2 t3.small &middot; no SSH key"]
+      direction TB
+      CONTAINER["Docker container<br/>FastAPI + built React SPA<br/>single uvicorn worker"]
+    end
+    EBS[("EBS data volume<br/>SQLite . ChromaDB . uploads")]
+    ECR["ECR repository<br/>cis:latest"]
+    SSM["SSM Parameter Store<br/>SecureString secrets"]
+    IAM["IAM instance role<br/>ECR pull + SSM read"]
+  end
+
+  OPENAI["OpenAI API<br/>chat + embeddings"]
+  LANGFUSE["Langfuse Cloud<br/>optional tracing"]
+
+  USER -->|"HTTP 80"| EIP
+  EIP --> CONTAINER
+  DEV -->|"docker push"| ECR
+  ECR -.->|"docker compose pull"| CONTAINER
+  CONTAINER -->|"bind mount /app/data"| EBS
+  SSM -.->|"fetched at boot into .env"| CONTAINER
+  IAM -.->|"grants, no static keys"| CONTAINER
+  CONTAINER -->|"embed + complete"| OPENAI
+  CONTAINER -.-> LANGFUSE
+
+  classDef svc fill:#1d6f8c14,stroke:#1d6f8c,stroke-width:1.4px;
+  classDef store fill:#f6f8fb,stroke:#4d5c70,stroke-width:1.4px;
+  classDef ext fill:#97650f14,stroke:#97650f,stroke-width:1.4px;
+  class CONTAINER,ECR,SSM,IAM svc;
+  class EBS store;
+  class OPENAI,LANGFUSE ext;

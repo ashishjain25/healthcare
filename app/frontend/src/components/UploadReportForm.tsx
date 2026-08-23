@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { FileUp, Loader2, UploadCloud } from "lucide-react";
 import type { Patient } from "../api/types";
 import { OTHER_CATEGORY, REPORT_CATEGORY_GROUPS } from "../lib/reportCategories";
@@ -29,6 +29,19 @@ export function UploadReportForm({
   const [patientId, setPatientId] = useState<string>(patients?.[0]?.id ? String(patients[0].id) : "");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+
+  // `patients` loads asynchronously (React Query), so it's often still empty
+  // when this component first mounts — the useState initializer above then
+  // permanently seeds patientId as "". The <select> below still visually
+  // shows the first option in that case (browser fallback for a controlled
+  // value matching no option), which looks selected but submits an empty
+  // patient_id. Re-sync once real data arrives or the selected id disappears.
+  useEffect(() => {
+    if (!patients?.length) return;
+    if (!patientId || !patients.some((p) => String(p.id) === patientId)) {
+      setPatientId(String(patients[0].id));
+    }
+  }, [patients, patientId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();

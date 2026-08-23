@@ -41,14 +41,21 @@ def list_for_user(conn: sqlite3.Connection, user_id: int) -> list[sqlite3.Row]:
     ).fetchall()
 
 
-def list_for_patient(conn: sqlite3.Connection, patient_id: int) -> list[sqlite3.Row]:
+def list_for_patient(conn: sqlite3.Connection, patient_id: int, user_id: int) -> list[sqlite3.Row]:
+    """Messages about this patient that `user_id` actually sent or received.
+
+    Deliberately NOT scoped by patient_id alone: two different doctors can
+    each have their own private thread with a radiologist about the same
+    shared patient, and one must never see the other's conversation.
+    """
     return conn.execute(
         "SELECT messages.*, u_sender.full_name AS sender_name, u_recipient.full_name AS recipient_name "
         "FROM messages "
         "JOIN users u_sender ON u_sender.id = messages.sender_user_id "
         "JOIN users u_recipient ON u_recipient.id = messages.recipient_user_id "
-        "WHERE messages.patient_id = ? ORDER BY messages.created_at",
-        (patient_id,),
+        "WHERE messages.patient_id = ? AND (messages.sender_user_id = ? OR messages.recipient_user_id = ?) "
+        "ORDER BY messages.created_at",
+        (patient_id, user_id, user_id),
     ).fetchall()
 
 

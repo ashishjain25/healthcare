@@ -100,7 +100,7 @@ def update_status(report_id: int, payload: dict, user: dict = Depends(_require_r
 def list_messages(patient_id: int | None = None, user: dict = Depends(_require_radiologist),
                    conn: sqlite3.Connection = Depends(get_db)) -> list[dict]:
     if patient_id is not None:
-        return [dict(m) for m in message_repo.list_for_patient(conn, patient_id)]
+        return [dict(m) for m in message_repo.list_for_patient(conn, patient_id, user["user_id"])]
     return [dict(m) for m in message_repo.list_for_user(conn, user["user_id"])]
 
 

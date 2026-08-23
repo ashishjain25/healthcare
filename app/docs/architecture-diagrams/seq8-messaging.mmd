@@ -16,6 +16,7 @@ sequenceDiagram
 
   Recipient->>SPA: opens dashboard for the same patient
   SPA->>API: GET .../messages?patient_id=...
-  API->>DB: list_for_patient(patient_id)
+  API->>DB: list_for_patient(patient_id, requesting_user_id)
+  Note over DB: scoped to threads the requesting user<br/>actually sent or received — a second doctor<br/>sharing this patient never sees this thread
   DB-->>API: messages + sender_name
   API-->>SPA: messages[]

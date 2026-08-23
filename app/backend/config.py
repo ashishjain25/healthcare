@@ -4,6 +4,14 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# AWS SSM SecureString parameters can't hold an empty string, so the
+# Terraform-provisioned placeholders (see deploy/terraform/secrets.tf) use
+# these sentinels instead of "" until a real value is set with
+# `aws ssm put-parameter --overwrite`. Without this check they'd be truthy
+# and, for Langfuse specifically, trip LangfuseObservability's eager
+# auth_check() and crash the whole app at startup on a fresh deploy.
+_UNSET_SENTINELS = {"", "CHANGE_ME", "UNSET"}
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -32,11 +40,14 @@ class Settings(BaseSettings):
 
     @property
     def langfuse_configured(self) -> bool:
-        return bool(self.LANGFUSE_PUBLIC_KEY and self.LANGFUSE_SECRET_KEY)
+        return (
+            bool(self.LANGFUSE_PUBLIC_KEY) and self.LANGFUSE_PUBLIC_KEY not in _UNSET_SENTINELS
+            and bool(self.LANGFUSE_SECRET_KEY) and self.LANGFUSE_SECRET_KEY not in _UNSET_SENTINELS
+        )
 
     @property
     def openai_configured(self) -> bool:
-        return bool(self.OPENAI_API_KEY)
+        return bool(self.OPENAI_API_KEY) and self.OPENAI_API_KEY not in _UNSET_SENTINELS
 
 
 @lru_cache

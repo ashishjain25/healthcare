@@ -11,6 +11,12 @@ instance_type = "t3.small"
 # allowed_ssh_cidr = "203.0.113.4/32"
 # key_name         = "my-ec2-keypair"
 
-# Leave blank to skip DNS and use the raw Elastic IP over HTTP.
+# Leave blank to skip a custom domain — `terraform output app_url` then
+# falls back to the instance's AWS-assigned public DNS hostname (e.g.
+# ec2-63-185-251-88.eu-central-1.compute.amazonaws.com), which is free,
+# requires no purchase, and is stable as long as the Elastic IP stays
+# attached — but it does have the IP address embedded in it, since that's
+# how AWS generates that hostname. A domain_name is the only way to get a
+# URL that doesn't expose the IP.
 # domain_name      = "clinical.example.com"
 # route53_zone_id  = "Z0123456789ABCDEFGHIJ"

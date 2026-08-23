@@ -126,8 +126,10 @@ secrets listed at the top of that file), or manually repeat steps 3–4 above.
 
 ## HTTPS
 
-The default setup serves plain HTTP on the Elastic IP (or `domain_name` if
-you set one). To add HTTPS, the simplest option is a
+The default setup serves plain HTTP on the instance's AWS-assigned public DNS
+hostname — `app_url`'s fallback, e.g. `ec2-<ip-with-dashes>.<region>.compute.amazonaws.com`,
+free and stable as long as the Elastic IP stays attached — or `domain_name`
+if you set one. To add HTTPS, the simplest option is a
 [Caddy](https://caddyserver.com/) reverse-proxy container in front of the
 app — Caddy issues and renews a Let's Encrypt cert automatically given a
 real domain pointed at the instance:

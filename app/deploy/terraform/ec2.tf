@@ -34,7 +34,10 @@ resource "aws_instance" "app" {
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 15
+    # Must be >= the current al2023 AMI's root snapshot size (grows over
+    # time as Amazon Linux 2023 updates it) or RunInstances rejects the
+    # block device mapping outright.
+    volume_size = 30
   }
 
   tags = {

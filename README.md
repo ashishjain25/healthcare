@@ -5,7 +5,7 @@
 | **Full Name** | Ashish Jain |
 | **Uplevel Email** | ashish.jain25@gmail.com |
 | **Problem Statement** | Clinical Intelligence System |
-| **Submission Date** | August 25, 2026 |
+| **Submission Date** | August 24, 2026 |
 
 ---
 
@@ -32,9 +32,9 @@ raw JSON:
 3. **Risk Detection** — flags critical values, auto-creates alerts and a
    naive next-business-day escalation appointment for CRITICAL findings.
 4. **Insight Generation** — produces the clinician-facing insight that a
-   doctor validates/modifies/finalizes (no notebook counterpart).
+   doctor validates/modifies/finalizes (designed and built from scratch).
 5. **Patient Communication** — produces the plain-language patient summary,
-   held back until a doctor approves it (no notebook counterpart).
+   held back until a doctor approves it (designed and built from scratch).
 
 ### Patient dashboard
 - Upload a report (file upload or pasted text) with a fixed category
@@ -91,13 +91,18 @@ raw JSON:
 
 See [`app/docs/architecture.pdf`](app/docs/architecture.pdf) for diagrams of
 the system components, the 5-agent pipeline, how the three roles share data,
-and 8 request-level sequence diagrams (login, upload → pipeline,
+8 request-level sequence diagrams (login, upload → pipeline,
 critical-alert escalation, doctor review → patient reveal, appointment
-booking/cancellation, AI chat, and doctor↔radiologist messaging). Sources in
+booking/cancellation, AI chat, and doctor↔radiologist messaging), and a
+closing deployment section. Sources in
 `app/docs/architecture-diagrams/*.mmd`, regenerate from `app/` with
 `mmdc -i <file>.mmd -o <file>.png -b white -c docs/architecture-diagrams/mermaid-config.json`
 — the config file bumps in-diagram font sizes; the PDF itself is A4
-landscape for legibility).
+landscape for legibility.
+
+For the AWS deployment specifically — the deployment diagram, why this
+shape, first-time setup, CI/CD, and this live deployment's actual details —
+see [`app/docs/deployment-architecture.pdf`](app/docs/deployment-architecture.pdf).
 
 ```
 app/
@@ -282,7 +287,7 @@ agent's "low-confidence extraction flagged for review" negative scenario.
   pipeline once `OPENAI_API_KEY` is set — runs without needing a Langfuse
   account. `LangfuseObservability` targets the current Langfuse v4 SDK
   (OTel-based `start_observation`/`.update()`/`.end()`), which is a
-  materially different API from the notebook's legacy v2-style
+  materially different API from Langfuse's legacy v2-style
   `.trace()/.generation()` calls.
 
 ## Tests
@@ -302,12 +307,19 @@ shells render).
 
 ## Deploying
 
+**Live**: http://ec2-63-185-251-88.eu-central-1.compute.amazonaws.com
+(AWS eu-central-1 — plain HTTP for now, no custom domain yet; seeded demo
+accounts, password `password123` for all — see Setup above).
+
 The app is Dockerized (`Dockerfile`, `docker-compose.yml`) and there's a
 Terraform stack under `deploy/terraform/` for a single EC2 instance +
 persistent EBS volume + ECR + SSM-managed secrets on AWS — see
 [`app/deploy/DEPLOYMENT.md`](app/deploy/DEPLOYMENT.md) for the full walkthrough
 (why this shape given SQLite's single-writer constraint, first-time setup,
-subsequent deploys via `.github/workflows/deploy.yml`, HTTPS, backups).
+subsequent deploys via `.github/workflows/deploy.yml`, HTTPS, backups), or
+[`app/docs/deployment-architecture.pdf`](app/docs/deployment-architecture.pdf)
+for the same material as a diagrammed reference document, including this
+specific deployment's live details.
 
 Local Docker smoke test: `docker compose up --build` from `app/`, then open
 `http://localhost:8000`.

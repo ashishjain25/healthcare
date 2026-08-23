@@ -1,6 +1,6 @@
 resource "aws_security_group" "app" {
   name        = "${var.project_name}-app"
-  description = "Clinical Intelligence System app instance — HTTP/HTTPS in, SSH only if explicitly enabled"
+  description = "Clinical Intelligence System app instance - HTTP/HTTPS in, SSH only if explicitly enabled"
   vpc_id      = local.vpc_id
 
   ingress {

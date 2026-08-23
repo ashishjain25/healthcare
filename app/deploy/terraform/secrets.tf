@@ -29,12 +29,14 @@ resource "aws_ssm_parameter" "session_secret" {
   tags = { Project = var.project_name }
 }
 
-# Optional — Langfuse observability. Left as "" (falls back to the app's
-# NoOp tracer) unless you set real values.
+# Optional — Langfuse observability. SSM SecureString values can't be empty
+# strings, so this uses the same "CHANGE_ME"-style placeholder as the
+# required secrets above; the bootstrap script/app treat an unset/placeholder
+# Langfuse key as "not configured" and fall back to the app's NoOp tracer.
 resource "aws_ssm_parameter" "langfuse_public_key" {
   name  = "/${var.project_name}/langfuse_public_key"
   type  = "SecureString"
-  value = ""
+  value = "UNSET"
 
   lifecycle {
     ignore_changes = [value]
@@ -46,7 +48,7 @@ resource "aws_ssm_parameter" "langfuse_public_key" {
 resource "aws_ssm_parameter" "langfuse_secret_key" {
   name  = "/${var.project_name}/langfuse_secret_key"
   type  = "SecureString"
-  value = ""
+  value = "UNSET"
 
   lifecycle {
     ignore_changes = [value]

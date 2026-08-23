@@ -4,8 +4,8 @@ output "aws_region" {
 }
 
 output "app_url" {
-  description = "Where the app is reachable once bootstrap.sh finishes (a few minutes after `terraform apply`)."
-  value       = var.domain_name != "" ? "http://${var.domain_name}" : "http://${aws_eip.app.public_ip}"
+  description = "Where the app is reachable once bootstrap.sh finishes (a few minutes after `terraform apply`). Falls back to the instance's AWS-assigned public DNS hostname (free, no domain purchase needed, stable as long as the Elastic IP stays attached) rather than the raw IP when domain_name isn't set."
+  value       = var.domain_name != "" ? "http://${var.domain_name}" : "http://${aws_instance.app.public_dns}"
 }
 
 output "instance_id" {
